@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRINY · Buscador de CECO y CEBE</title>
+<style>
+:root{
+  --navy:#0d1b3e; --navy-2:#16295c; --amarillo:#ffd100;
+  --papel:#f6f5f2; --linea:#dcd9d2; --texto:#1a1a1a; --tenue:#6b6b6b;
+  --s1:#b03030; --s2:#9a7410; --s3:#4a7a2c; --s4:#2b6ca8; --s5:#6b3a9c; --s6:#b4551a; --s7:#4a4a4a;
+  --ok:#1e7a4a; --alerta:#a5401c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--papel);color:var(--texto);
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px 64px}
+header{background:var(--navy);color:#fff;padding:26px 0 22px}
+header .wrap{padding-bottom:0}
+.marca{font-size:13px;letter-spacing:.18em;color:var(--amarillo);font-weight:600}
+h1{font-size:26px;margin:6px 0 4px;font-weight:600;letter-spacing:-.01em}
+.sub{color:#b9c2d8;font-size:15px;margin:0}
+
+.codigo{background:var(--navy-2);padding:20px 0 22px}
+.chars{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.ch{width:38px;height:48px;display:flex;align-items:center;justify-content:center;
+  font-family:ui-monospace,Consolas,monospace;font-size:22px;font-weight:700;
+  background:#0a1531;color:#3d4a70;border-radius:3px;border-bottom:3px solid #2a3a66;
+  transition:background .18s,color .18s,border-color .18s}
+.ch.on{background:#fff}
+.ch[data-seg="1"].on{color:var(--s1);border-bottom-color:var(--s1)}
+.ch[data-seg="2"].on{color:var(--s2);border-bottom-color:var(--s2)}
+.ch[data-seg="3"].on{color:var(--s3);border-bottom-color:var(--s3)}
+.ch[data-seg="4"].on{color:var(--s4);border-bottom-color:var(--s4)}
+.ch[data-seg="5"].on{color:var(--s5);border-bottom-color:var(--s5)}
+.ch[data-seg="6"].on{color:var(--s6);border-bottom-color:var(--s6)}
+.ch[data-seg="7"].on{color:var(--s7);border-bottom-color:var(--s7)}
+.leyenda{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;margin-top:13px;font-size:12px;color:#93a0c0}
+.leyenda span{display:flex;align-items:center;gap:5px}
+.leyenda i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+.buscador{margin:22px 0 8px;position:relative}
+.buscador input{width:100%;padding:13px 15px;font-size:16px;font-family:inherit;
+  border:1px solid var(--linea);border-radius:6px;background:#fff}
+.buscador input:focus{outline:2px solid var(--navy);outline-offset:-1px;border-color:transparent}
+.sug{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--linea);
+  border-top:none;border-radius:0 0 6px 6px;max-height:270px;overflow:auto;z-index:20}
+.sug div{padding:10px 15px;cursor:pointer;font-size:15px;display:flex;justify-content:space-between;gap:12px}
+.sug div:hover{background:#eef1f8}
+.sug code{font-family:ui-monospace,Consolas,monospace;color:var(--tenue);font-size:13px}
+
+.paso{margin-top:26px;border-top:1px solid var(--linea);padding-top:20px}
+.preg{font-size:18px;font-weight:600;margin:0 0 4px}
+.ayuda{color:var(--tenue);font-size:14px;margin:0 0 14px}
+.ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.op{background:#fff;border:1px solid var(--linea);border-radius:6px;padding:12px 15px;
+  cursor:pointer;text-align:left;font:inherit;font-size:15px;color:var(--texto);
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.op:hover{border-color:var(--navy)}
+.op:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.op.activa{background:var(--navy);color:#fff;border-color:var(--navy)}
+.op .pista{display:block;font-size:12.5px;color:var(--tenue);margin-top:2px;line-height:1.35}
+.op.activa .pista{color:#b9c2d8}
+.op small{font-family:ui-monospace,Consolas,monospace;font-size:12px;opacity:.55;white-space:nowrap;padding-top:2px}
+.op.activa small{opacity:.85}
+.op.vacia{border-style:dashed;color:var(--tenue);background:#faf9f7}
+.op.vacia small{color:var(--alerta);opacity:1;font-family:inherit;font-size:11.5px}
+
+.res{margin-top:28px;background:#fff;border:1px solid var(--linea);border-radius:8px;overflow:hidden}
+.res-top{background:var(--navy);color:#fff;padding:18px 22px}
+.res.no .res-top{background:var(--alerta)}
+.res-nom{font-size:19px;font-weight:600;margin:0 0 3px}
+.res-blq{color:#b9c2d8;font-size:14px;margin:0}
+.res.no .res-blq{color:#f3d8ce}
+.res-body{padding:4px 22px 20px}
+.fila{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid #eeece7;align-items:baseline}
+.fila:last-child{border-bottom:none}
+.fila dt{width:158px;flex:none;color:var(--tenue);font-size:14px}
+.fila dd{margin:0;font-size:15px}
+.mono{font-family:ui-monospace,Consolas,monospace;font-weight:600;font-size:17px;letter-spacing:.02em}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:600}
+.pill.dir{background:#dff2e6;color:var(--ok)}
+.pill.pro{background:#fdf0d8;color:#8a6100}
+.copiar{margin-top:16px;background:var(--amarillo);border:none;border-radius:6px;
+  padding:11px 20px;font:inherit;font-weight:600;cursor:pointer;color:var(--navy)}
+.copiar:hover{filter:brightness(.94)}
+.reiniciar{background:none;border:1px solid var(--linea);border-radius:6px;padding:11px 18px;
+  font:inherit;cursor:pointer;margin-left:8px;color:var(--tenue)}
+.nota{font-size:13.5px;color:var(--tenue);margin:14px 0 0;padding-top:14px;border-top:1px solid #eeece7}
+.alt{margin-top:12px;padding:12px 14px;background:#f4f7fc;border-left:3px solid var(--navy);font-size:14.5px}
+.alt b{font-family:ui-monospace,Consolas,monospace}
+.alt a{color:var(--navy);cursor:pointer;text-decoration:underline}
+footer{text-align:center;color:var(--tenue);font-size:13px;margin-top:40px}
+@media(max-width:560px){
+  .ch{width:27px;height:38px;font-size:16px}
+  .fila{flex-direction:column;gap:2px}.fila dt{width:auto}
+  h1{font-size:21px}.ops{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <div class="marca">TRINY CAR RENTAL</div>
+  <h1>¿Qué CECO y qué CEBE uso?</h1>
+  <p class="sub">Elige dónde y a qué corresponde el gasto. Si ese CECO todavía no está creado, también te lo dice.</p>
+</div></header>
+
+<div class="codigo"><div class="wrap">
+  <div class="chars" id="chars"></div>
+  <div class="leyenda">
+    <span><i style="background:var(--s1)"></i>Empresa</span>
+    <span><i style="background:var(--s2)"></i>Región</span>
+    <span><i style="background:var(--s3)"></i>Departamento</span>
+    <span><i style="background:var(--s4)"></i>Ciudad</span>
+    <span><i style="background:var(--s5)"></i>Unidad</span>
+    <span><i style="background:var(--s6)"></i>Área</span>
+    <span><i style="background:var(--s7)"></i>Categoría</span>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div class="buscador">
+    <input id="q" type="text" autocomplete="off" placeholder="O busca directo: contabilidad, taller, almacén, T2LISUSA0422…">
+    <div class="sug" id="sug" hidden></div>
+  </div>
+  <div id="pasos"></div>
+  <div id="res"></div>
+</div>
+
+<footer>Estructura CECO / CEBE 2026 · v7 &nbsp;·&nbsp; 55 CECOs &nbsp;·&nbsp; 17 CEBEs</footer>
+
+<script>
+const CAT = {"cecos":[{"cod":"T2LISU101001","v6":"T2LS101001","nom":"FLEXIBLE GENERAL","bloque":"Unidad de negocio","s5":"1","s6":"01","s7":"001","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU101001","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"01"},{"cod":"T2LISU201101","v6":"T2LS201101","nom":"RENTING GENERAL","bloque":"Unidad de negocio","s5":"2","s6":"01","s7":"101","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU201101","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"01"},{"cod":"T2LISU202102","v6":"T2LS202102","nom":"RENTING CONDESTABLE","bloque":"Unidad de negocio","s5":"2","s6":"02","s7":"102","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU202102","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"02"},{"cod":"T2LISU203103","v6":"T2LS203103","nom":"RENTING KOLPA","bloque":"Unidad de negocio","s5":"2","s6":"03","s7":"103","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU203103","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"03"},{"cod":"T2LISU301201","v6":"T2LS301201","nom":"TRANSPORTE GENERAL","bloque":"Unidad de negocio","s5":"3","s6":"01","s7":"201","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU301201","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"01"},{"cod":"T2LISU302202","v6":"T2LS302202","nom":"TRANSPORTE ORYGEN","bloque":"Unidad de negocio","s5":"3","s6":"02","s7":"202","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU302202","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"02"},{"cod":"T2LISU401091","v6":"T2LS401091","nom":"VENTA DE VEHICULOS","bloque":"Unidad de negocio","s5":"4","s6":"01","s7":"091","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU401091","eerr":"Costo de Servicio","driver":"— (CEBE propio)","tipo":"—","fase":0,"area":"01"},{"cod":"T2LISUSG0401","v6":"T2LSSG0301","nom":"GERENCIA GENERAL","bloque":"Soporte · Gerencia","s5":"S","s6":"G0","s7":"401","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSG0401","eerr":"Gasto Administrativo","driver":"Ingresos presupuestados (Budget)","tipo":"Fijo","fase":1,"area":"Gerencia"},{"cod":"T2LISUSG0402","v6":"T2LSSG0302","nom":"FINANZAS","bloque":"Soporte · Gerencia","s5":"S","s6":"G0","s7":"402","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSG0401","eerr":"Gasto Administrativo","driver":"Ingresos presupuestados (Budget)","tipo":"Fijo","fase":1,"area":"Gerencia"},{"cod":"T2LISUSG0403","v6":"T2LSSG0303","nom":"COSTOS","bloque":"Soporte · Gerencia","s5":"S","s6":"G0","s7":"403","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSG0401","eerr":"Gasto Administrativo","driver":"Ingresos presupuestados (Budget)","tipo":"Fijo","fase":1,"area":"Gerencia"},{"cod":"T2LISUSA0421","v6":"T2LSSA0321","nom":"ADMINISTRACIÓN GENERAL","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"421","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"Ingresos presupuestados (Budget)","tipo":"Fijo","fase":1,"area":"Administración"},{"cod":"T2LISUSA0422","v6":"T2LSSA0322","nom":"CONTABILIDAD","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"422","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"N° transacciones contables por línea","tipo":"Fijo","fase":1,"area":"Administración"},{"cod":"T2LISUSA0423","v6":"T2LSSA0323","nom":"TESORERÍA","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"423","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"Ingresos facturados (flujo real)","tipo":"Variable","fase":1,"area":"Administración"},{"cod":"T2LISUSA0424","v6":"T2LSSA0324","nom":"FACTURACIÓN","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"424","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"N° facturas emitidas por línea","tipo":"Variable","fase":1,"area":"Administración"},{"cod":"T2LISUSA0425","v6":"T2LSSA0325","nom":"COBRANZAS","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"425","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"Saldo CxC por línea","tipo":"Variable","fase":1,"area":"Administración"},{"cod":"T2LISUSA0426","v6":"T2LSSA0326","nom":"SEGUROS Y SINIESTROS","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"426","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"N° vehículos asegurados por línea","tipo":"Variable","fase":1,"area":"Administración"},{"cod":"T2LISUSA0427","v6":"T2LSSA0327","nom":"VIÁTICOS Y GASTOS","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"427","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"N° desplazamientos por línea","tipo":"Variable","fase":1,"area":"Administración"},{"cod":"T2LISUSA0428","v6":"T2LSSA0328","nom":"CUMPLIMIENTO TRIBUTARIO","bloque":"Soporte · Administración","s5":"S","s6":"A0","s7":"428","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSA0421","eerr":"Gasto Administrativo","driver":"Ingresos presupuestados (Budget)","tipo":"Fijo","fase":1,"area":"Administración"},{"cod":"T2LISUSR0441","v6":"T2LSSR0341","nom":"GESTIÓN HUMANA","bloque":"Soporte · RRHH","s5":"S","s6":"R0","s7":"441","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSR0441","eerr":"Gasto Administrativo","driver":"N° colaboradores por línea (headcount)","tipo":"Fijo","fase":1,"area":"RRHH"},{"cod":"T2LISUSR0442","v6":"T2LSSR0342","nom":"SELECCIÓN","bloque":"Soporte · RRHH","s5":"S","s6":"R0","s7":"442","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSR0441","eerr":"Gasto Administrativo","driver":"N° contrataciones del mes por línea","tipo":"Variable","fase":1,"area":"RRHH"},{"cod":"T2LISUSS0461","v6":"T2LSSS0361","nom":"CALIDAD, MEJORA CONTINUA Y PROCESOS","bloque":"Soporte · SIG","s5":"S","s6":"S0","s7":"461","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSS0461","eerr":"Gasto Administrativo","driver":"Distribución igualitaria entre líneas","tipo":"Fijo","fase":1,"area":"SIG · Calidad y SSOMA"},{"cod":"T2LISUSS0462","v6":"T2LSSS0362","nom":"SSOMA","bloque":"Soporte · SIG","s5":"S","s6":"S0","s7":"462","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSS0461","eerr":"Gasto Administrativo","driver":"N° vehículos/conductores por línea","tipo":"Variable","fase":1,"area":"SIG · Calidad y SSOMA"},{"cod":"T2LISUST0481","v6":"T2LSST0381","nom":"SISTEMAS","bloque":"Soporte · TIC","s5":"S","s6":"T0","s7":"481","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUST0481","eerr":"Gasto Administrativo","driver":"N° usuarios SAP por línea","tipo":"Fijo","fase":1,"area":"Tecnología"},{"cod":"T2LISUST0482","v6":"T2LSST0382","nom":"SOPORTE TI","bloque":"Soporte · TIC","s5":"S","s6":"T0","s7":"482","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUST0481","eerr":"Gasto Administrativo","driver":"N° tickets de soporte por línea","tipo":"Variable","fase":1,"area":"Tecnología"},{"cod":"T2LISUST0483","v6":"T2LSST0383","nom":"SAP","bloque":"Soporte · TIC","s5":"S","s6":"T0","s7":"483","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUST0481","eerr":"Gasto Administrativo","driver":"N° usuarios SAP por línea","tipo":"Fijo","fase":1,"area":"Tecnología"},{"cod":"T2LISUSL0501","v6":"T2LSSL0401","nom":"LOGÍSTICA GESTIÓN","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"501","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° órdenes de compra por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2LISUSL0502","v6":"T2LSSL0402","nom":"COMPRAS","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"502","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° órdenes de compra por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2LISUSL0503","v6":"T2LSSL0403","nom":"ALMACENES SURCO","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° salidas de almacén (vales) por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2LICHSL0503","v6":"T2LCSL0403","nom":"ALMACENES CHORRILLOS","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"2 Centro","dep":"LI Lima","ciu":"CH Chorrillos","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° salidas de almacén (vales) por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2LIMASL0503","v6":"T2LMSL0403","nom":"ALMACENES MALA","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"2 Centro","dep":"LI Lima","ciu":"MA Mala","asig":"Directa","cebe":"TCLISU202102","eerr":"Costo de Servicio","driver":"— (sede monocontrato)","tipo":"—","fase":0,"area":"Logística y Almacenes"},{"cod":"T2ANHLSL0503","v6":"T2NHSL0403","nom":"ALMACENES HUALLANCA","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"2 Centro","dep":"AN Ancash","ciu":"HL Huallanca","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° salidas de almacén (vales) por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2HUKOSL0503","v6":"T2HKSL0403","nom":"ALMACENES KOLPA","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"2 Centro","dep":"HU Huánuco","ciu":"KO Kolpa","asig":"Directa","cebe":"TCLISU203103","eerr":"Costo de Servicio","driver":"— (sede monocontrato)","tipo":"—","fase":0,"area":"Logística y Almacenes"},{"cod":"T3ARARSL0503","v6":"T3AASL0403","nom":"ALMACENES AREQUIPA","bloque":"Soporte · Logística","s5":"S","s6":"L0","s7":"503","reg":"3 Sur","dep":"AR Arequipa","ciu":"AR Arequipa","asig":"Prorrateo","cebe":"TCLISUSL0501","eerr":"Gasto Administrativo","driver":"N° salidas de almacén (vales) por línea","tipo":"Variable","fase":1,"area":"Logística y Almacenes"},{"cod":"T2LISUSC0521","v6":"T2LSSC0421","nom":"COMERCIAL GESTIÓN","bloque":"Comercial","s5":"S","s6":"C0","s7":"521","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSC0521","eerr":"Gasto de Ventas","driver":"Ingresos facturados por línea","tipo":"Variable","fase":1,"area":"Comercial y Marketing"},{"cod":"T2LISUSC0522","v6":"T2LSSC0422","nom":"COMERCIAL FLEXIBLE","bloque":"Comercial","s5":"S","s6":"C0","s7":"522","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSC0521","eerr":"Gasto de Ventas","driver":"100% a CEBE Flexible","tipo":"Fijo","fase":1,"area":"Comercial y Marketing"},{"cod":"T2LISUSC0523","v6":"T2LSSC0423","nom":"COMERCIAL RENTING","bloque":"Comercial","s5":"S","s6":"C0","s7":"523","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSC0521","eerr":"Gasto de Ventas","driver":"% por línea renting según cartera","tipo":"Fijo","fase":1,"area":"Comercial y Marketing"},{"cod":"T2LISUSC0524","v6":"T2LSSC0424","nom":"MARKETING","bloque":"Comercial","s5":"S","s6":"C0","s7":"524","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUSC0521","eerr":"Gasto de Ventas","driver":"Ingresos facturados por línea","tipo":"Variable","fase":1,"area":"Comercial y Marketing"},{"cod":"T2LISUOP0701","v6":"T2LSOP0701","nom":"GESTIÓN DE FLOTA","bloque":"Operaciones · Post Venta","s5":"O","s6":"P0","s7":"701","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOP0701","eerr":"Costo de Servicio","driver":"N° contratos activos por línea","tipo":"Variable","fase":2,"area":"Post Venta y Flota"},{"cod":"T2LISUOP0702","v6":"T2LSOP0702","nom":"PATIO","bloque":"Operaciones · Post Venta","s5":"O","s6":"P0","s7":"702","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOP0701","eerr":"Costo de Servicio","driver":"N° movimientos de flota (checklist)","tipo":"Variable","fase":2,"area":"Post Venta y Flota"},{"cod":"T2LISUOP0703","v6":"T2LSOP0703","nom":"EQUIPAMIENTO","bloque":"Operaciones · Post Venta","s5":"O","s6":"P0","s7":"703","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOP0701","eerr":"Costo de Servicio","driver":"N° equipamientos realizados por línea","tipo":"Variable","fase":2,"area":"Post Venta y Flota"},{"cod":"T2LISUOD0741","v6":"T2LSOD0741","nom":"TORRE DE CONTROL ADMINISTRATIVO","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"741","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOD0741","eerr":"Costo de Servicio","driver":"N° conductores asignados por línea","tipo":"Variable","fase":2,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOD0742","v6":"T2LSOD0742","nom":"CONDUCTOR FIJO GENERAL","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"742","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU301201","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOD0743","v6":"T2LSOD0743","nom":"CONDUCTOR INTERMITENTE","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"743","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU101001","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOD0744","v6":"T2LSOD0744","nom":"CONDUCTOR FIJO ANTAMINA","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"744","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU301201","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOD0745","v6":"T2LSOD0745","nom":"CONDUCTOR FIJO UNACEM","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"745","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU301201","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T3ARAROD0742","v6":"T3AAOD0742","nom":"CONDUCTOR FIJO AREQUIPA","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"742","reg":"3 Sur","dep":"AR Arequipa","ciu":"AR Arequipa","asig":"Directa","cebe":"TCLISU301201","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOD0746","v6":"T2LSOD0746","nom":"CONDUCTOR FIJO ORYGEN","bloque":"Operaciones · Conductores","s5":"O","s6":"D0","s7":"746","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Directa","cebe":"TCLISU302202","eerr":"Costo de Servicio","driver":"— (asignación directa)","tipo":"—","fase":0,"area":"Conductores y Torre de Control"},{"cod":"T2LISUOM0781","v6":"T2LSOM0781","nom":"MANTENIMIENTO VEHICULAR","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"781","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"N° intervenciones de taller por línea","tipo":"Variable","fase":2,"area":"Mantenimiento y Talleres"},{"cod":"T2LISUOM0782","v6":"T2LSOM0782","nom":"SERVICIOS","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"782","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"N° intervenciones de taller por línea","tipo":"Variable","fase":2,"area":"Mantenimiento y Talleres"},{"cod":"T2LICHOM0783","v6":"T2LCOM0783","nom":"TALLER CHORRILLOS","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"783","reg":"2 Centro","dep":"LI Lima","ciu":"CH Chorrillos","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"N° intervenciones de taller por línea","tipo":"Variable","fase":2,"area":"Mantenimiento y Talleres"},{"cod":"T2LIMAOM0783","v6":"T2LMOM0783","nom":"TALLER MALA","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"783","reg":"2 Centro","dep":"LI Lima","ciu":"MA Mala","asig":"Directa","cebe":"TCLISU202102","eerr":"Costo de Servicio","driver":"— (sede monocontrato)","tipo":"—","fase":0,"area":"Mantenimiento y Talleres"},{"cod":"T2ANHLOM0783","v6":"T2NHOM0783","nom":"TALLER HUALLANCA","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"783","reg":"2 Centro","dep":"AN Ancash","ciu":"HL Huallanca","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"N° intervenciones de taller por línea","tipo":"Variable","fase":2,"area":"Mantenimiento y Talleres"},{"cod":"T2HUKOOM0783","v6":"T2HKOM0783","nom":"TALLER KOLPA","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"783","reg":"2 Centro","dep":"HU Huánuco","ciu":"KO Kolpa","asig":"Directa","cebe":"TCLISU203103","eerr":"Costo de Servicio","driver":"— (sede monocontrato)","tipo":"—","fase":0,"area":"Mantenimiento y Talleres"},{"cod":"T3ARAROM0783","v6":"T3AAOM0783","nom":"TALLER AREQUIPA","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"783","reg":"3 Sur","dep":"AR Arequipa","ciu":"AR Arequipa","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"N° intervenciones de taller por línea","tipo":"Variable","fase":2,"area":"Mantenimiento y Talleres"},{"cod":"T2LISUOM0784","v6":"T2LSOM0784","nom":"MANTENIMIENTO DE EQUIPOS","bloque":"Operaciones · Mantenimiento","s5":"O","s6":"M0","s7":"784","reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco","asig":"Prorrateo","cebe":"TCLISUOM0781","eerr":"Costo de Servicio","driver":"Distribución igualitaria entre líneas","tipo":"Fijo","fase":2,"area":"Mantenimiento y Talleres"}],"cebes":{"TCLISU101001":{"nombre":"Flexible / Rent a Car","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU401091":{"nombre":"Venta de Vehículos","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU201101":{"nombre":"Renting General","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU202102":{"nombre":"Renting Condestable","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU203103":{"nombre":"Renting Kolpa","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU301201":{"nombre":"Transporte General","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISU302202":{"nombre":"Transporte Orygen","nivel":"Operativo","eerr":"Margen bruto directo","fase":"— (recibe)"},"TCLISUSG0401":{"nombre":"Gobierno y Finanzas","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUSA0421":{"nombre":"Administración","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUSR0441":{"nombre":"Gestión Humana","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUSS0461":{"nombre":"SIG","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUST0481":{"nombre":"Tecnología","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUSL0501":{"nombre":"Logística y Almacenes","nivel":"Funcional","eerr":"Gasto Administrativo","fase":"Fase 1"},"TCLISUSC0521":{"nombre":"Comercial y Marketing","nivel":"Funcional","eerr":"Gasto de Ventas","fase":"Fase 1"},"TCLISUOP0701":{"nombre":"Post Venta y Flota","nivel":"Funcional","eerr":"Costo de Servicio","fase":"Fase 2"},"TCLISUOD0741":{"nombre":"Torre de Control","nivel":"Funcional","eerr":"Costo de Servicio","fase":"Fase 2"},"TCLISUOM0781":{"nombre":"Mantenimiento y Talleres","nivel":"Funcional","eerr":"Costo de Servicio","fase":"Fase 2"}},"tpl":[{"s5":"1","s6":"01","s7":"001","nom":"FLEXIBLE GENERAL","sedes":["SU Surco"]},{"s5":"4","s6":"01","s7":"091","nom":"VENTA DE VEHICULOS","sedes":["SU Surco"]},{"s5":"2","s6":"01","s7":"101","nom":"RENTING GENERAL","sedes":["SU Surco"]},{"s5":"2","s6":"02","s7":"102","nom":"RENTING CONDESTABLE","sedes":["SU Surco"]},{"s5":"2","s6":"03","s7":"103","nom":"RENTING","sedes":["SU Surco"]},{"s5":"3","s6":"01","s7":"201","nom":"TRANSPORTE GENERAL","sedes":["SU Surco"]},{"s5":"3","s6":"02","s7":"202","nom":"TRANSPORTE ORYGEN","sedes":["SU Surco"]},{"s5":"S","s6":"G0","s7":"401","nom":"GERENCIA GENERAL","sedes":["SU Surco"]},{"s5":"S","s6":"G0","s7":"402","nom":"FINANZAS","sedes":["SU Surco"]},{"s5":"S","s6":"G0","s7":"403","nom":"COSTOS","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"421","nom":"ADMINISTRACIÓN GENERAL","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"422","nom":"CONTABILIDAD","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"423","nom":"TESORERÍA","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"424","nom":"FACTURACIÓN","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"425","nom":"COBRANZAS","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"426","nom":"SEGUROS Y SINIESTROS","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"427","nom":"VIÁTICOS Y GASTOS","sedes":["SU Surco"]},{"s5":"S","s6":"A0","s7":"428","nom":"CUMPLIMIENTO TRIBUTARIO","sedes":["SU Surco"]},{"s5":"S","s6":"R0","s7":"441","nom":"GESTIÓN HUMANA","sedes":["SU Surco"]},{"s5":"S","s6":"R0","s7":"442","nom":"SELECCIÓN","sedes":["SU Surco"]},{"s5":"S","s6":"S0","s7":"461","nom":"CALIDAD, MEJORA CONTINUA Y PROCESOS","sedes":["SU Surco"]},{"s5":"S","s6":"S0","s7":"462","nom":"SSOMA","sedes":["SU Surco"]},{"s5":"S","s6":"T0","s7":"481","nom":"SISTEMAS","sedes":["SU Surco"]},{"s5":"S","s6":"T0","s7":"482","nom":"SOPORTE TI","sedes":["SU Surco"]},{"s5":"S","s6":"T0","s7":"483","nom":"SAP","sedes":["SU Surco"]},{"s5":"S","s6":"L0","s7":"501","nom":"LOGÍSTICA GESTIÓN","sedes":["SU Surco"]},{"s5":"S","s6":"L0","s7":"502","nom":"COMPRAS","sedes":["SU Surco"]},{"s5":"S","s6":"L0","s7":"503","nom":"ALMACENES","sedes":["SU Surco","CH Chorrillos","MA Mala","HL Huallanca","KO Kolpa","AR Arequipa"]},{"s5":"S","s6":"C0","s7":"521","nom":"COMERCIAL GESTIÓN","sedes":["SU Surco"]},{"s5":"S","s6":"C0","s7":"522","nom":"COMERCIAL FLEXIBLE","sedes":["SU Surco"]},{"s5":"S","s6":"C0","s7":"523","nom":"COMERCIAL RENTING","sedes":["SU Surco"]},{"s5":"S","s6":"C0","s7":"524","nom":"MARKETING","sedes":["SU Surco"]},{"s5":"O","s6":"P0","s7":"701","nom":"GESTIÓN DE FLOTA","sedes":["SU Surco"]},{"s5":"O","s6":"P0","s7":"702","nom":"PATIO","sedes":["SU Surco"]},{"s5":"O","s6":"P0","s7":"703","nom":"EQUIPAMIENTO","sedes":["SU Surco"]},{"s5":"O","s6":"D0","s7":"741","nom":"TORRE DE CONTROL ADMINISTRATIVO","sedes":["SU Surco"]},{"s5":"O","s6":"D0","s7":"742","nom":"CONDUCTOR FIJO GENERAL","sedes":["SU Surco","AR Arequipa"]},{"s5":"O","s6":"D0","s7":"743","nom":"CONDUCTOR INTERMITENTE","sedes":["SU Surco"]},{"s5":"O","s6":"D0","s7":"744","nom":"CONDUCTOR FIJO ANTAMINA","sedes":["SU Surco"]},{"s5":"O","s6":"D0","s7":"745","nom":"CONDUCTOR FIJO UNACEM","sedes":["SU Surco"]},{"s5":"O","s6":"D0","s7":"746","nom":"CONDUCTOR FIJO ORYGEN","sedes":["SU Surco"]},{"s5":"O","s6":"M0","s7":"781","nom":"MANTENIMIENTO VEHICULAR","sedes":["SU Surco"]},{"s5":"O","s6":"M0","s7":"782","nom":"SERVICIOS","sedes":["SU Surco"]},{"s5":"O","s6":"M0","s7":"783","nom":"TALLER","sedes":["CH Chorrillos","MA Mala","HL Huallanca","KO Kolpa","AR Arequipa"]},{"s5":"O","s6":"M0","s7":"784","nom":"MANTENIMIENTO DE EQUIPOS","sedes":["SU Surco"]}],"areas":{"G0":"Gerencia","A0":"Administración","R0":"RRHH","S0":"SIG · Calidad y SSOMA","T0":"Tecnología","L0":"Logística y Almacenes","C0":"Comercial y Marketing","P0":"Post Venta y Flota","D0":"Conductores y Torre de Control","M0":"Mantenimiento y Talleres"},"bloques":[{"s5":"1","nom":"Flexible / Rent a Car","tipo":"un","pista":"Alquiler spot, con o sin conductor"},{"s5":"2","nom":"Renting","tipo":"un","pista":"Contrato de largo plazo sin conductor"},{"s5":"3","nom":"Transporte","tipo":"un","pista":"Contrato de largo plazo con conductor"},{"s5":"4","nom":"Venta de Vehículos","tipo":"un","pista":"Venta de unidades, incluidas las ex-renting"},{"s5":"S","nom":"Soporte y Gobierno","tipo":"fx","pista":"Áreas internas: gerencia, administración, RRHH, TI, logística, comercial"},{"s5":"O","nom":"Operaciones y Servicios","tipo":"fx","pista":"Flota, conductores, talleres y almacenes de operación"}],"sedes":[{"reg":"3 Sur","dep":"AR Arequipa","ciu":"AR Arequipa"},{"reg":"2 Centro","dep":"LI Lima","ciu":"CH Chorrillos"},{"reg":"2 Centro","dep":"AN Ancash","ciu":"HL Huallanca"},{"reg":"2 Centro","dep":"HU Huánuco","ciu":"KO Kolpa"},{"reg":"2 Centro","dep":"LI Lima","ciu":"MA Mala"},{"reg":"2 Centro","dep":"LI Lima","ciu":"SU Surco"}]};
+const SEG = [1,2,3,3,4,4,5,6,6,7,7,7];
+const $ = id => document.getElementById(id);
+let sel = {sede:null, bloque:null, area:null, tpl:null, ceco:null};
+/* con sede + plantilla elegidas, ¿existe ese CECO exacto? */
+function codigoPleno(){
+  if(!sel.sede || !sel.tpl) return null;
+  return 'T'+sel.sede.reg[0]+sel.sede.dep.slice(0,2)+sel.sede.ciu.slice(0,2)
+        + sel.tpl.s5 + sel.tpl.s6 + sel.tpl.s7;
+}
+function resolver(){
+  const cod = codigoPleno();
+  sel.ceco = cod ? (CAT.cecos.find(c=>c.cod===cod) || null) : null;
+}
+
+const chars = $('chars');
+SEG.forEach(s=>{ const d=document.createElement('div'); d.className='ch'; d.dataset.seg=s; d.textContent='·'; chars.appendChild(d); });
+function pintar(cod){
+  [...chars.children].forEach((el,i)=>{
+    const c = cod && cod[i];
+    el.textContent = c || '·';
+    el.classList.toggle('on', !!c && c!=='·');
+  });
+}
+
+/* el código se arma desde lo elegido, exista o no el CECO */
+function armar(){
+  if(sel.ceco) return sel.ceco.cod;
+  const pleno = codigoPleno(); if(pleno) return pleno;
+  let s = 'T';
+  if(!sel.sede) return s;
+  s += sel.sede.reg[0] + sel.sede.dep.slice(0,2) + sel.sede.ciu.slice(0,2);
+  if(!sel.bloque) return s;
+  s += sel.bloque.s5;
+  if(!sel.area) return s;
+  s += sel.area;
+  const cs = candidatos();
+  if(cs.length){
+    const base = cs[0].cod; let n = s.length;
+    while(n<12 && cs.every(c=>c.cod[n]===base[n])) n++;
+    return base.slice(0,n);
+  }
+  return s;
+}
+
+const candidatos = () => CAT.cecos.filter(c =>
+  (!sel.sede || c.ciu===sel.sede.ciu) &&
+  (!sel.bloque || c.s5===sel.bloque.s5) &&
+  (!sel.area || c.s6===sel.area));
+
+/* cuántos CECOs existen si además fijo un criterio */
+function cuenta(extra){
+  return CAT.cecos.filter(c =>
+    (!sel.sede || c.ciu===sel.sede.ciu) &&
+    (!sel.bloque || c.s5===sel.bloque.s5) &&
+    (!sel.area || c.s6===sel.area) &&
+    Object.keys(extra).every(k => c[k]===extra[k])).length;
+}
+
+function bloquePaso(titulo, ayuda, opciones){
+  const d=document.createElement('div'); d.className='paso';
+  d.innerHTML = `<p class="preg">${titulo}</p>` + (ayuda?`<p class="ayuda">${ayuda}</p>`:'');
+  const g=document.createElement('div'); g.className='ops';
+  opciones.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='op' + (o.activa?' activa':'') + (o.n===0?' vacia':'');
+    b.innerHTML = `<span>${o.label}${o.pista?`<span class="pista">${o.pista}</span>`:''}</span>`
+                + `<small>${o.n===0?'sin CECOs':(o.tag||'')}</small>`;
+    b.onclick=o.pick; g.appendChild(b);
+  });
+  d.appendChild(g); return d;
+}
+
+function render(){
+  const p=$('pasos'); p.innerHTML='';
+
+  p.appendChild(bloquePaso('¿En qué sede se origina el gasto?',
+    'Dónde se origina o se administra el gasto. Si dudas, es la sede a la que reporta la persona o el activo.',
+    CAT.sedes.map(s=>({
+      label:`${s.ciu.slice(3)}`, pista:`${s.dep.slice(3)} · ${s.reg.slice(2)}`,
+      tag:s.dep.slice(0,2)+s.ciu.slice(0,2),
+      n:CAT.cecos.filter(c=>c.ciu===s.ciu).length,
+      activa: sel.sede && sel.sede.ciu===s.ciu,
+      pick:()=>{ sel.sede = (sel.sede&&sel.sede.ciu===s.ciu)?null:s; sel.bloque=null;sel.area=null;sel.tpl=null;sel.ceco=null; render(); }
+    }))));
+
+  if(sel.sede){
+    p.appendChild(bloquePaso('¿A qué corresponde el gasto?','',
+      CAT.bloques.map(b=>({
+        label:b.nom, pista:b.pista, tag:b.s5,
+        n:cuenta({s5:b.s5}) && CAT.cecos.filter(c=>c.ciu===sel.sede.ciu&&c.s5===b.s5).length,
+        activa: sel.bloque && sel.bloque.s5===b.s5,
+        pick:()=>{ sel.bloque=(sel.bloque&&sel.bloque.s5===b.s5)?null:b; sel.area=null;sel.tpl=null;sel.ceco=null; render(); }
+      }))));
+  }
+
+  if(sel.bloque){
+    if(sel.bloque.tipo==='un'){
+      /* unidad de negocio: el contrato ES el CECO, no hay paso extra */
+      const ts=CAT.tpl.filter(t=>t.s5===sel.bloque.s5);
+      p.appendChild(bloquePaso('¿Qué contrato o línea?',
+        'Cada contrato con cliente tiene su propio CECO y su propio CEBE.',
+        ts.map(t=>({label:t.nom, tag:t.s7, n:t.sedes.includes(sel.sede.ciu)?1:0,
+            activa: sel.tpl && sel.tpl.s7===t.s7,
+            pick:()=>{ sel.area=t.s6; sel.tpl=t; resolver(); render(); }}))));
+    } else {
+      const dominio = sel.bloque.s5==='S' ? ['G0','A0','R0','S0','T0','L0','C0'] : ['P0','D0','M0'];
+      p.appendChild(bloquePaso('¿Qué área?','',
+        dominio.map(a=>({
+          label:CAT.areas[a], tag:a,
+          n:CAT.cecos.filter(c=>c.ciu===sel.sede.ciu&&c.s5===sel.bloque.s5&&c.s6===a).length,
+          activa: sel.area===a,
+          pick:()=>{ sel.area=(sel.area===a?null:a); sel.tpl=null; sel.ceco=null; render(); }
+        }))));
+    }
+  }
+
+  if(sel.area && sel.bloque && sel.bloque.tipo!=='un'){
+    const ts=CAT.tpl.filter(t=>t.s5===sel.bloque.s5 && t.s6===sel.area);
+    p.appendChild(bloquePaso('¿Qué actividad exactamente?','',
+      ts.map(t=>({label:t.nom, tag:t.s7, n:t.sedes.includes(sel.sede.ciu)?1:0,
+          activa: sel.tpl && sel.tpl.s7===t.s7,
+          pick:()=>{ sel.tpl=t; resolver(); render(); }}))));
+  }
+
+  pintar(armar());
+  resultado();
+}
+
+function resultado(){
+  const r=$('res');
+
+  /* la combinación elegida no existe en el catálogo */
+  if(sel.tpl && !sel.ceco){
+    const cod = codigoPleno();
+    const donde = sel.tpl.sedes.map(s=>s.slice(3));
+    const gemelos = CAT.cecos.filter(c=>c.s5===sel.tpl.s5&&c.s6===sel.tpl.s6&&c.s7===sel.tpl.s7);
+    const cebe = gemelos.length && gemelos[0].asig!=='Directa' ? gemelos[0].cebe : null;
+    r.innerHTML = `
+    <div class="res no">
+      <div class="res-top">
+        <p class="res-nom">Ese CECO todavía no está creado</p>
+        <p class="res-blq">${sel.tpl.nom} · ${sel.sede.ciu.slice(3)}</p>
+      </div>
+      <div class="res-body"><dl>
+        <div class="fila"><dt>Le correspondería</dt><dd class="mono">${cod}</dd></div>
+        <div class="fila"><dt>Situación</dt><dd>Costos y Presupuestos no lo tiene dado de alta. No lo uses todavía.</dd></div>
+        ${donde.length?`<div class="fila"><dt>Sí existe en</dt><dd>${donde.join(', ')}</dd></div>`:''}
+      </dl>
+      ${gemelos.length?`<div class="alt">La misma actividad en otras sedes:${gemelos.slice(0,4).map(c=>
+        `<br><b>${c.cod}</b> — ${c.nom} <span style="color:var(--tenue)">(${c.ciu.slice(3)})</span>`).join('')}</div>`:''}
+      <p class="nota">Si el gasto se originó en otra de esas sedes, cámbiala arriba. Si de verdad corresponde a
+      ${sel.sede.ciu.slice(3)}, solicita el alta a Costos y Presupuestos citando el código <b class="mono">${cod}</b>:
+      el número ya está reservado en el rango del área, así que se crea sin recodificar nada. Mientras tanto no inventes un código.</p>
+      <button class="reiniciar" id="rs" style="margin-left:0">Empezar de nuevo</button>
+      </div>
+    </div>`;
+    $('rs').onclick=reiniciar; return;
+  }
+
+  if(!sel.ceco){ r.innerHTML=''; return; }
+  const c=sel.ceco, b=CAT.cebes[c.cebe], dir=c.asig==='Directa';
+  r.innerHTML = `
+  <div class="res">
+    <div class="res-top">
+      <p class="res-nom">${c.nom}</p>
+      <p class="res-blq">${c.bloque} · ${c.dep.slice(3)} · ${c.ciu.slice(3)}</p>
+    </div>
+    <div class="res-body"><dl>
+      <div class="fila"><dt>CECO</dt><dd class="mono">${c.cod}</dd></div>
+      <div class="fila"><dt>CEBE</dt><dd><span class="mono">${c.cebe}</span> &nbsp;${b?b.nombre:''}</dd></div>
+      <div class="fila"><dt>Línea del EERR</dt><dd>${c.eerr}</dd></div>
+      <div class="fila"><dt>Cómo llega al CEBE</dt><dd>
+        <span class="pill ${dir?'dir':'pro'}">${dir?'Asignación directa':'Prorrateo · Fase '+c.fase}</span></dd></div>
+      ${dir?'':`<div class="fila"><dt>Driver</dt><dd>${c.driver} <span style="color:var(--tenue)">· ${c.tipo}</span></dd></div>`}
+    </dl>
+    <button class="copiar" id="cp">Copiar CECO</button>
+    <button class="reiniciar" id="rs">Empezar de nuevo</button>
+    <p class="nota">${dir
+      ? 'Se imputa directo a su línea de negocio: no pasa por prorrateo y el margen es visible desde el registro.'
+      : 'Se acumula en el CEBE funcional durante el mes y se reparte entre las líneas en el cierre, con el driver indicado.'}</p>
+    </div>
+  </div>`;
+  $('cp').onclick=e=>{navigator.clipboard.writeText(c.cod).then(()=>{e.target.textContent='Copiado';setTimeout(()=>e.target.textContent='Copiar CECO',1400)})};
+  $('rs').onclick=reiniciar;
+}
+function reiniciar(){ sel={sede:null,bloque:null,area:null,tpl:null,ceco:null}; $('q').value=''; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+const q=$('q'), sug=$('sug');
+q.addEventListener('input',()=>{
+  const t=q.value.trim().toLowerCase();
+  if(t.length<2){ sug.hidden=true; return; }
+  const hits=CAT.cecos.filter(c=>c.nom.toLowerCase().includes(t)||c.cod.toLowerCase().includes(t)
+    ||(c.area||'').toLowerCase().includes(t)||c.ciu.toLowerCase().includes(t)).slice(0,9);
+  sug.innerHTML = hits.length
+    ? hits.map(h=>`<div data-c="${h.cod}"><span>${h.nom} <span style="color:#6b6b6b">· ${h.ciu.slice(3)}</span></span><code>${h.cod}</code></div>`).join('')
+    : '<div style="color:#6b6b6b;cursor:default">Sin resultados. Ese CECO puede no estar creado — recórrelo por sede y área para confirmarlo.</div>';
+  sug.hidden=false;
+  [...sug.children].forEach(d=>{ if(!d.dataset.c) return; d.onclick=()=>{
+    const c=CAT.cecos.find(x=>x.cod===d.dataset.c);
+    sel={sede:CAT.sedes.find(s=>s.ciu===c.ciu), bloque:CAT.bloques.find(b=>b.s5===c.s5), area:c.s6, tpl:CAT.tpl.find(t=>t.s5===c.s5&&t.s6===c.s6&&t.s7===c.s7), ceco:c};
+    sug.hidden=true; q.value=''; render(); $('res').scrollIntoView({behavior:'smooth',block:'center'});
+  };});
+});
+q.addEventListener('blur',()=>setTimeout(()=>sug.hidden=true,180));
+
+render();
+</script>
+</body>
+</html>
